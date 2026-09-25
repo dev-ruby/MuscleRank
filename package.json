@@ -1,0 +1,9 @@
+{
+  "name": "musclerank",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/rank-engine.test.mjs",
+    "validate": "node scripts/validate-catalog.mjs"
+  }
+}
