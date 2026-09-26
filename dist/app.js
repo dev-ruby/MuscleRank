@@ -3,12 +3,22 @@ import { validateCatalog, calculate, restoreState, numeric, inputValue, subdivis
 const $ = id => document.getElementById(id);
 const STORAGE_KEY = 'musclerank-records-v3';
 const LANGUAGE_KEY = 'musclerank-language';
+const SORT_KEY = 'musclerank-muscle-sort';
 const legacyKey = 'musclerank-reference-ui-v2';
 const read = key => { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; } };
 const write = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* Session remains usable. */ } };
 const escape = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 let catalog, locales, state, exercises, tiers, muscleGroups;
 let selected = 0, language = read(LANGUAGE_KEY) === 'en' ? 'en' : 'ko';
+let muscleSort = read(SORT_KEY) === 'rank' ? 'rank' : 'body', muscleOrder = '';
+const bodySections = [
+  {key:'regionChest',ids:['chest']},
+  {key:'regionShoulders',ids:['front-delts','side-delts','rear-delts']},
+  {key:'regionBack',ids:['lats','traps','scapular','erectors']},
+  {key:'regionArms',ids:['biceps','triceps','forearms']},
+  {key:'regionCore',ids:['abs','obliques']},
+  {key:'regionLegs',ids:['quads','glutes','hamstrings','calves']},
+];
 let rulers = {}, carouselBusy = false, overlayOpener = null;
 const t = (key, params = {}) => (locales[language][key] || locales.en[key] || key).replace(/\{(\w+)\}/g, (_, token) => params[token] ?? `{${token}}`);
 const label = object => object[language] || object.en;
@@ -46,13 +56,23 @@ function buildBody() {
   const ns = 'http://www.w3.org/2000/svg';
   for (const side of ['front','back']) {
     const svg = document.createElementNS(ns,'svg'); svg.setAttribute('viewBox',window.BODY_MODEL[side].viewBox);
+    const defs = document.createElementNS(ns,'defs'); svg.append(defs);
     const outline = document.createElementNS(ns,'path'); outline.setAttribute('d',window.BODY_MODEL[side].outline); outline.setAttribute('fill','#dedce8'); svg.append(outline);
     for (const part of window.BODY_MODEL[side].parts) {
       const group = document.createElementNS(ns,'g'); group.dataset.muscle = part.slug;
+      // Clip the new shoulder segments to the original illustration's silhouette.
+      if (part.clipPaths) {
+        const clip = document.createElementNS(ns,'clipPath');
+        clip.id = `body-clip-${side}-${part.slug}`; clip.setAttribute('clipPathUnits','userSpaceOnUse');
+        for (const d of part.clipPaths) {
+          const path = document.createElementNS(ns,'path'); path.setAttribute('d',d); clip.append(path);
+        }
+        defs.append(clip); group.setAttribute('clip-path',`url(#${clip.id})`);
+      }
       const muscle = muscleGroups.find(item => item.parts.includes(part.slug));
       if (muscle) {
         group.dataset.group = muscle.id; group.setAttribute('role','button'); group.setAttribute('tabindex','0');
-        const select = () => { const card=$('muscle-'+muscle.id);card.open=true;card.scrollIntoView({behavior:reducedMotion()?'instant':'smooth',block:'center'}); };
+        const select = () => { const card=$('muscle-'+muscle.id);if(card.hidden)return;card.open=true;card.scrollIntoView({behavior:reducedMotion()?'instant':'smooth',block:'center'}); };
         group.addEventListener('click',select);group.addEventListener('keydown',event=>{if(['Enter',' '].includes(event.key)){event.preventDefault();select();}});
       }
       for(const d of part.paths){const path=document.createElementNS(ns,'path');path.setAttribute('d',d);group.append(path);}
@@ -76,19 +96,45 @@ function buildBody() {
     });
   });
 }
+function orderMuscles(result) {
+  const ranked=result.muscles.filter(muscle=>muscleGroups.some(group=>group.id===muscle.id));
+  const list=$('muscle-rankings'),nodes=[];
+  if(muscleSort==='rank'){
+    ranked.sort((a,b)=>(b.score??-1)-(a.score??-1));
+    for(const muscle of ranked)nodes.push($('muscle-'+muscle.id));
+  }else{
+    for(const section of bodySections){
+      const members=section.ids.filter(id=>ranked.some(muscle=>muscle.id===id));
+      if(!members.length)continue;
+      let heading=$('heading-'+section.key);
+      if(!heading){heading=document.createElement('h2');heading.id='heading-'+section.key;heading.className='muscle-section-heading';}
+      heading.textContent=t(section.key);nodes.push(heading,...members.map(id=>$('muscle-'+id)));
+    }
+    // Future catalog muscles without a configured region still remain visible.
+    for(const muscle of ranked)if(!bodySections.some(section=>section.ids.includes(muscle.id)))nodes.push($('muscle-'+muscle.id));
+  }
+  const order=nodes.map(node=>node.id).join('|');
+  if(order!==muscleOrder){
+    list.querySelectorAll('.muscle-section-heading').forEach(heading=>heading.remove());
+    list.append(...nodes);muscleOrder=order;
+  }
+  for(const mode of ['body','rank'])$('sort-'+mode).setAttribute('aria-pressed',String(muscleSort===mode));
+}
 function renderBody(result) {
   $('body-profile-summary').textContent=`${state.profile.height} cm · ${state.profile.bodyweight} kg`;
   for(const group of muscleGroups){
     const muscle=result.muscles.find(item=>item.id===group.id),tier=muscle.tier===null?null:tiers[muscle.tier],card=$('muscle-'+group.id);
+    card.hidden=false;
     for(const [key,value] of Object.entries({color:tier?.color||'#b9b8ce',deep:tier?.deep||'#302b3b',mid:tier?.mid||'#40384c'}))card.style.setProperty('--muscle-'+key,value);
     card.querySelector('.muscle-name').textContent=label(group.label);card.querySelector('.muscle-tier').textContent=rankText(muscle.score,muscle.tier);
-    const linked=result.lifts.filter(lift=>lift.muscles[group.id]);
+    const linked=muscle.contributors;
     const totalWeight=muscle.contributors.reduce((sum,lift)=>sum+lift.muscles[group.id],0);
-    card.querySelector('.muscle-detail').innerHTML=linked.map(lift=>`<button data-edit="${lift.id}" type="button"><span class="exercise-art" data-art="${lift.id}" aria-hidden="true"></span><span>${escape(label(lift.name))}<small>${lift.valid?t('contribution',{percent:Math.round(lift.muscles[group.id]/totalWeight*100)}):t('noRecord')}</small><b class="muscle-record">${lift.valid?`${format(lift.weight)} kg × ${lift.reps} ${t('repsUnit')}`:t('noMuscleRecord')}</b></span><span class="badge-sprite" data-badge="${lift.valid?lift.tier:0}" ${lift.valid?'':'hidden'} aria-hidden="true"></span></button>`).join('');
+    card.querySelector('.muscle-detail').innerHTML=linked.length?linked.map(lift=>`<button data-edit="${lift.id}" type="button"><span class="exercise-art" data-art="${lift.id}" aria-hidden="true"></span><span>${escape(label(lift.name))}<small>${t('contribution',{percent:Math.round(lift.muscles[group.id]/totalWeight*100)})}</small><b class="muscle-record">${format(lift.weight)} kg × ${lift.reps} ${t('repsUnit')}</b></span><span class="badge-sprite" data-badge="${lift.tier}" aria-hidden="true"></span></button>`).join(''):`<p class="muscle-no-record">${escape(t('noRecord'))}</p>`;
     card.querySelectorAll('[data-art]').forEach(el=>artAt(el,exercises.find(ex=>ex.id===el.dataset.art)));
     card.querySelectorAll('[data-badge]').forEach(el=>badgeAt(el,Number(el.dataset.badge)));
-    document.querySelectorAll(`[data-group="${group.id}"]`).forEach(part=>{part.style.setProperty('--muscle-fill',tier?.color||'#b9b8ce');part.setAttribute('aria-label',`${label(group.label)}: ${rankText(muscle.score,muscle.tier)}`);});
+    document.querySelectorAll(`[data-group="${group.id}"]`).forEach(part=>{part.style.setProperty('--muscle-fill',tier?.color||'#b9b8ce');part.setAttribute('aria-label',`${label(group.label)}: ${rankText(muscle.score,muscle.tier)}`);part.setAttribute('tabindex','0');part.removeAttribute('aria-disabled');});
   }
+  orderMuscles(result);
   const used=[...new Set(result.muscles.filter(m=>m.tier!==null).map(m=>m.tier))].sort((a,b)=>a-b);
   $('body-legend').innerHTML=used.map(index=>`<span><i style="background:${tiers[index].color}"></i>${escape(label(tiers[index].label))}</span>`).join('')+`<span><i style="background:#b9b8ce"></i>${t('rankPending')}</span>`;
 }
@@ -131,19 +177,41 @@ function renderResult(result) {
   $('result-title').textContent=t(hasRank?'rankTitle':'rankEmpty');
   $('total-weight').textContent=result.total===null?'—':`${format(result.total)} kg`;
   $('rank-score').textContent=hasRank?`${result.score.toFixed(2)}×`:'—';
-  $('result-lifts').innerHTML=result.lifts.map(lift=>`<span><small>${escape(label(lift.name))}</small><b>${lift.valid?`${format(lift.oneRepMax)} kg`:'—'}</b></span>`).join('');
+  $('result-lifts').innerHTML=result.lifts.filter(lift=>lift.valid).map(lift=>`<span><small>${escape(label(lift.name))}</small><b>${format(lift.oneRepMax)} kg</b></span>`).join('');
   $('rank-ladder').innerHTML=tiers.map((item,index)=>`<div class="rank-item ${index===result.tier?'active':''}" style="--tier-color:${item.color}"><span class="badge-sprite" style="--badge-x:${index%3*50}%;--badge-y:${Math.floor(index/3)*50}%" aria-hidden="true"></span><span>${escape(label(item.label))}</span></div>`).join('');
   const next=hasRank?tiers[result.tier+1]:null;
   $('next-rank').textContent=!hasRank?t('rankEmpty'):!next?t('highest'):t('nextRank',{tier:label(next.label),progress:Math.round(Math.max(0,Math.min(1,(result.score-tier.minScore)/(next.minScore-tier.minScore)))*100)});
 }
 function stopRulers(){Object.values(rulers).forEach(ruler=>ruler.stop(true));}
+function showLiftRank(){
+  if(!$('lift-rank-overlay').hidden)return;
+  stopRulers();
+  const lift=results().lifts[selected];
+  if(!lift.valid)return;
+  save();showScreen('body');
+  const tier=tiers[lift.tier],overlay=$('lift-rank-overlay');
+  for(const key of ['color','light','mid','deep'])overlay.style.setProperty('--lift-'+key,tier[key]);
+  $('lift-rank-name').textContent=rankText(lift.score,lift.tier);
+  $('lift-rank-exercise').textContent=label(lift.name);
+  badgeAt($('lift-rank-badge'),lift.tier);
+  $('lift-rank-badge').setAttribute('aria-label',t('badge',{tier:label(tier.label)}));
+  $('lift-rank-weight').textContent=`${format(lift.weight)} kg`;
+  $('lift-rank-reps').textContent=`${lift.reps} ${t('repsUnit')}`;
+  $('lift-rank-estimate').textContent=t('estimatedMax',{weight:format(lift.oneRepMax)});
+  const next=tiers[lift.tier+1];
+  const progress=next?Math.max(0,Math.min(1,(lift.score-tier.minScore)/(next.minScore-tier.minScore))):1;
+  $('lift-rank-next').textContent=next?t('nextRank',{tier:label(next.label),progress:Math.round(progress*100)}):t('highest');
+  $('lift-rank-progress').style.setProperty('--progress',progress);
+  showOverlay('lift-rank-overlay');
+  $('body-screen').inert=true;
+}
 function showScreen(screen){
   stopRulers();for(const name of ['body','editor','result'])$(name+'-screen').hidden=name!==screen;renderComputed();window.scrollTo({top:0,behavior:'instant'});
   const element=$(screen+'-screen');motion(element,[{opacity:0,transform:`translateY(${screen==='editor'?35:12}px)`},{opacity:1,transform:'translateY(0)'}],380);
   element.setAttribute('tabindex','-1');element.focus({preventScroll:true});
 }
-function showOverlay(id){stopRulers();overlayOpener=document.activeElement;const overlay=$(id);overlay.hidden=false;document.body.style.overflow='hidden';motion(overlay,[{opacity:0},{opacity:1}],220);motion(overlay.querySelector('.sheet'),[{transform:'translateY(60px)'},{transform:'translateY(0)'}],360);overlay.querySelector('button').focus();}
-async function hideOverlay(id){const overlay=$(id);if(overlay.hidden||overlay.dataset.closing)return;overlay.dataset.closing='true';await motion(overlay,[{opacity:1},{opacity:0}],140).finished.catch(()=>{});overlay.hidden=true;delete overlay.dataset.closing;document.body.style.overflow='';overlayOpener?.focus({preventScroll:true});}
+function showOverlay(id){stopRulers();overlayOpener=document.activeElement;const overlay=$(id);overlay.hidden=false;document.body.style.overflow='hidden';motion(overlay,[{opacity:0},{opacity:1}],220);motion(overlay.querySelector('.sheet'),id==='lift-rank-overlay'?[{opacity:0,transform:'translateY(28px) scale(.88)'},{opacity:1,transform:'translateY(0) scale(1)'}]:[{transform:'translateY(60px)'},{transform:'translateY(0)'}],360);overlay.querySelector('button').focus();}
+async function hideOverlay(id){const overlay=$(id);if(overlay.hidden||overlay.dataset.closing)return;overlay.dataset.closing='true';await motion(overlay,[{opacity:1},{opacity:0}],140).finished.catch(()=>{});overlay.hidden=true;delete overlay.dataset.closing;if(id==='lift-rank-overlay')$('body-screen').inert=false;document.body.style.overflow='';overlayOpener?.focus({preventScroll:true});}
 async function selectExercise(index,direction=1){
   if(carouselBusy||index===selected)return;carouselBusy=true;stopRulers();
   const panels=[...document.querySelectorAll('.exercise-carousel > *')];
@@ -161,6 +229,11 @@ function renderPicker(){
 }
 function openProfile(){for(const key of ['gender','height','bodyweight'])$(key).value=state.profile[key];$('profile-error').hidden=true;showOverlay('profile-overlay');}
 function bindEvents(){
+  for(const mode of ['body','rank'])$('sort-'+mode).addEventListener('click',()=>{
+    if(muscleSort===mode)return;
+    muscleSort=mode;write(SORT_KEY,mode);orderMuscles(results());
+    motion($('muscle-rankings'),[{opacity:.4,transform:'translateY(8px)'},{opacity:1,transform:'translateY(0)'}],240);
+  });
   rulers=Object.fromEntries(['weight','reps'].map(field=>[field,new window.RulerControl($(field+'-range'),{...exercises[0].input[field],unit:field==='weight'?'kg':t('repsUnit'),onChange(value){$(field+'-input').value=value;currentRecord()[field]=String(value);renderComputed();},onCommit:save})]));
   for(const field of ['weight','reps'])$(field+'-input').addEventListener('input',()=>{currentRecord()[field]=$(field+'-input').value;rulers[field].set(currentRecord()[field]);save();renderComputed();});
   $('language').addEventListener('change',()=>{stopRulers();language=$('language').value;write(LANGUAGE_KEY,language);renderLocale();});
@@ -172,7 +245,7 @@ function bindEvents(){
   carousel.addEventListener('pointercancel',()=>{start=null;});
   $('open-picker').addEventListener('click',()=>{renderPicker();showOverlay('picker-overlay');});
   $('picker-list').addEventListener('click',event=>{const button=event.target.closest('[data-pick]');if(button){selectExercise(exercises.findIndex(ex=>ex.id===button.dataset.pick));hideOverlay('picker-overlay');}});
-  for(const name of ['profile','picker','method']){
+  for(const name of ['profile','picker','method','lift-rank']){
     $('close-'+name).addEventListener('click',()=>hideOverlay(name+'-overlay'));
     $(name+'-overlay').addEventListener('click',event=>{if(event.target===$(name+'-overlay'))hideOverlay(name+'-overlay');});
   }
@@ -183,7 +256,9 @@ function bindEvents(){
     $('profile-error').hidden=height!==null&&bodyweight!==null;if(!$('profile-error').hidden)return;
     state.profile={gender:$('gender').value,height:$('height').value,bodyweight:$('bodyweight').value};save();renderEditor();hideOverlay('profile-overlay');
   });
-  for(const [id,screen] of [['get-rank','body'],['show-result','body'],['return-to-bodygraph','body'],['back-to-editor','editor'],['body-rank','result'],['body-record','editor'],['body-add-record','editor']])$(id).addEventListener('click',()=>showScreen(screen));
+  $('get-rank').addEventListener('click',showLiftRank);
+  $('lift-rank-done').addEventListener('click',()=>hideOverlay('lift-rank-overlay'));
+  for(const [id,screen] of [['show-result','body'],['return-to-bodygraph','body'],['back-to-editor','editor'],['body-rank','result'],['body-record','editor'],['body-add-record','editor']])$(id).addEventListener('click',()=>showScreen(screen));
   for(const id of ['body-help','open-method'])$(id).addEventListener('click',()=>showOverlay('method-overlay'));
   document.addEventListener('keydown',event=>{const overlay=document.querySelector('.overlay:not([hidden])');if(!overlay)return;if(event.key==='Escape')hideOverlay(overlay.id);if(event.key==='Tab'){const controls=[...overlay.querySelectorAll('button,input,select')],first=controls[0],last=controls.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}});
 }
@@ -201,13 +276,14 @@ function registerAgentTool(){
 }
 async function start(){
   try{
-    const fetchJSON=async path=>{const response=await fetch(path);if(!response.ok)throw new Error(`Could not load ${path}`);return response.json();};
+    const fetchJSON=async path=>{const response=await fetch(path,{cache:'no-store'});if(!response.ok)throw new Error(`Could not load ${path}`);return response.json();};
     const[data,translations]=await Promise.all([fetchJSON('./data/catalog.json'),fetchJSON('./data/locales.json')]);
     catalog=validateCatalog(data);locales=translations;
-    if(!locales.ko||!locales.en||Object.keys(locales.en).some(key=>!locales.ko[key]))throw new Error('Missing translations');
+    const requiredKeys=[...document.querySelectorAll('[data-i18n],[data-i18n-aria]')].flatMap(el=>[el.dataset.i18n,el.dataset.i18nAria]).filter(Boolean).concat(bodySections.map(section=>section.key));
+    if(!locales.ko||!locales.en||[...requiredKeys,...Object.keys(locales.en),...Object.keys(locales.ko)].some(key=>!locales.ko[key]||!locales.en[key]))throw new Error('Missing translations');
     exercises=catalog.exercises;tiers=catalog.tiers;
     // Only groups linked to configured exercises need interactive cards.
-    muscleGroups=catalog.muscles.filter(group=>exercises.some(ex=>ex.muscles[group.id]));
+    muscleGroups=catalog.muscles;
     state=restoreState(catalog,read(STORAGE_KEY),read(legacyKey));save();buildBody();bindEvents();renderLocale();registerAgentTool();
     $('app-status').hidden=true;document.querySelector('main').hidden=false;
   }catch(error){console.error(error);$('app-status').replaceChildren(document.createTextNode('운동 정보를 불러오지 못했습니다. / Could not load exercise data. '));const retry=document.createElement('button');retry.textContent='다시 시도 / Try again';retry.addEventListener('click',()=>location.reload());$('app-status').append(retry);}

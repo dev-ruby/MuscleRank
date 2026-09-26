@@ -27,6 +27,12 @@
 .muscle-heading{display:flex;align-items:baseline;justify-content:space-between;gap:5px}.muscle-heading h1{font-size:25px;letter-spacing:-.04em;font-weight:500;margin:0}.muscle-heading>span{font-size:10px;color:#8e849c}
 .body-note{color:#8e849c;font-size:10px;line-height:1.6;margin:8px 0 19px}
 .muscle-rankings{display:grid;gap:13px}.muscle-card{--muscle-color:#ffd95d;--muscle-deep:#5b430f;--muscle-mid:#8c742f}
+.muscle-card[hidden]{display:none!important}
+.muscle-sort{display:flex;gap:7px;padding:5px;margin:0 0 19px;background:#1a1424;border-radius:13px}
+.muscle-sort button{flex:1;min-height:40px;padding:9px 8px;border-radius:9px;background:transparent;color:#a99eb9;font-size:13px;font-weight:700}
+.muscle-sort button[aria-pressed="true"]{background:#5fbdf8;color:#140e1d;box-shadow:0 2px 8px #0002}
+.muscle-section-heading{margin:9px 2px 0;color:#aaa0b9;font-size:13px;font-weight:700;letter-spacing:.03em}
+.muscle-no-record{margin:2px 8px 8px;color:#a99eb9;font-size:12px;line-height:1.6}
 .muscle-card summary{list-style:none;display:flex;align-items:center;gap:11px;background:linear-gradient(110deg,var(--muscle-deep),var(--muscle-mid));border-radius:14px;padding:12px;cursor:pointer;min-height:82px}
 .muscle-card summary::-webkit-details-marker{display:none}.muscle-card summary:focus-visible{outline:2px solid #75c9ff;outline-offset:3px}
 .muscle-emblem{width:48px;flex-shrink:0}.muscle-emblem svg{display:block;width:100%;fill:#bbd9ed;stroke:#8cb6d7;stroke-width:4}.muscle-emblem .emblem-muscle{fill:#729cbf;stroke:#e1f2ff;stroke-width:1.2}
@@ -57,6 +63,32 @@ button{transition:filter .16s,background-color .2s,box-shadow .2s}button:active{
 @media(max-width:360px){.body-screen{padding-left:16px;padding-right:16px}.body-tabs{margin:0 -16px;padding-left:16px;padding-right:16px;gap:6px}.body-tabs button{font-size:13px;padding:11px 14px}.muscle-card-name{font-size:16px}.side-art{width:49px;height:49px}.side-title{font-size:.65rem}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}}
 
+.lift-rank-overlay{align-items:center;padding:18px;background:#08050fe0;backdrop-filter:blur(7px)}
+.lift-rank-sheet{position:relative;width:min(100%,400px);max-height:calc(100svh - 36px);padding:30px 20px 22px;border-radius:26px;background:#17111f;border:1px solid #ffffff15;box-shadow:0 24px 80px #0009;text-align:center;overflow:auto}
+.lift-rank-close{position:absolute;right:10px;top:8px;z-index:2;width:40px;height:40px;background:none;color:#d9d2e1;font-size:30px;line-height:1}
+.sheet .lift-rank-eyebrow{margin:4px 24px 20px;color:var(--lift-color);font-size:12px;font-weight:800;letter-spacing:.12em}
+.lift-rank-card{position:relative;overflow:hidden;isolation:isolate;padding:23px 16px 14px;border:1px solid var(--lift-color);border-radius:20px;background:linear-gradient(145deg,var(--lift-mid),var(--lift-deep) 80%);color:var(--lift-light)}
+.sheet .lift-rank-card h2{position:relative;font-size:clamp(27px,8vw,38px);line-height:1.15;font-weight:900;letter-spacing:-.03em}
+.lift-rank-emblem{position:relative;display:grid;place-items:center;height:185px;margin:5px 0}
+.lift-rank-emblem .badge-sprite{position:relative;width:180px;height:180px;filter:drop-shadow(0 10px 14px #0005)}
+.lift-rank-halo{position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse,var(--lift-color),transparent 67%);opacity:.35}
+.lift-rank-card h3{position:relative;margin:8px 0 20px;font-size:24px;line-height:1.25;overflow-wrap:anywhere}
+.lift-rank-record{position:relative;display:grid;grid-template-columns:1fr 24px 1fr;align-items:center;gap:7px}
+.lift-rank-record strong{padding:12px 4px;border:1.5px solid var(--lift-light);border-radius:11px;font-size:23px;white-space:nowrap;letter-spacing:-.04em}
+.lift-rank-record strong:last-child{background:var(--lift-light);color:var(--lift-deep)}
+.sheet #lift-rank-estimate{position:relative;margin:13px 0 0;color:var(--lift-light);font-size:12px;opacity:.85}
+.sheet .lift-rank-next{margin:18px 0 9px;color:#c9c0d1;font-size:12px}
+.lift-rank-progress{height:5px;border-radius:5px;background:#ffffff12;overflow:hidden;margin:0 8px 23px}
+.lift-rank-progress span{display:block;height:100%;width:100%;background:var(--lift-color);transform:scaleX(var(--progress,0));transform-origin:left;border-radius:inherit}
+.lift-rank-done{width:100%;min-height:55px;border-radius:14px;background:var(--lift-color);color:#17111f;font-size:16px;font-weight:900;box-shadow:inset 0 -4px 0 #0002}
+.lift-rank-shine{position:absolute;inset:-60%;pointer-events:none;background:linear-gradient(110deg,transparent 40%,#ffffff22 50%,transparent 60%);transform:translateX(80%)}
+.lift-rank-overlay:not([hidden]) .badge-sprite{animation:lift-badge-reveal .7s .08s cubic-bezier(.18,1.4,.35,1) both}
+.lift-rank-overlay:not([hidden]) .lift-rank-shine{animation:lift-shine 1.1s .15s ease-out both}
+.lift-rank-overlay:not([hidden]) .lift-rank-progress span{animation:lift-progress .75s .2s ease-out both}
+@keyframes lift-badge-reveal{from{opacity:0;transform:translateY(18px) scale(.5) rotate(-12deg)}to{opacity:1;transform:translateY(0) scale(1) rotate(0)}}
+@keyframes lift-shine{from{transform:translateX(-70%)}to{transform:translateX(80%)}}
+@keyframes lift-progress{from{transform:scaleX(0)}to{transform:scaleX(var(--progress,0))}}
+@media(max-height:650px){.lift-rank-sheet{padding-top:24px}.lift-rank-emblem{height:130px}.lift-rank-emblem .badge-sprite{width:130px;height:130px}.sheet .lift-rank-eyebrow{margin-bottom:12px}.lift-rank-card h3{margin:5px 0 12px;font-size:21px}}
 .header-tools{display:flex;align-items:center;gap:12px}.language-select{background:#262131;color:#ded8e7;border:1px solid #4c4559;border-radius:10px;padding:7px 5px;font-size:12px;max-width:88px}.language-select option{background:#262131}
 .app-status{max-width:480px;margin:20vh auto;padding:25px;color:#bdb7c9;line-height:1.8;text-align:center}.app-status button{display:block;margin:20px auto;background:#63bdf8;border-radius:10px;padding:12px 20px}
 .art-fallback{display:grid;place-items:center;font-size:40px;background-color:#30283b;border-radius:50%}.side-art.art-fallback{font-size:27px}

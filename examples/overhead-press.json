@@ -40,7 +40,8 @@
     }
   },
   "muscles": {
-    "shoulders": 1,
+    "front-delts": 1,
+    "side-delts": 0.65,
     "triceps": 0.5
   },
   "artwork": null

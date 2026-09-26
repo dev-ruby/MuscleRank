@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "calibrationVersion": "mvp-2026-09-expanded",
+  "calibrationVersion": "mvp-2026-09-granular",
   "status": "provisional",
   "tiers": [
     {
@@ -9,7 +9,7 @@
         "en": "WOOD",
         "ko": "우드"
       },
-      "minScore": 0.0,
+      "minScore": 0,
       "color": "#9d7345",
       "light": "#e1b270",
       "mid": "#84602e",
@@ -124,13 +124,33 @@
       ]
     },
     {
-      "id": "shoulders",
+      "id": "front-delts",
       "label": {
-        "en": "Shoulders",
-        "ko": "어깨"
+        "en": "Front delts",
+        "ko": "전면 삼각근"
       },
       "parts": [
-        "deltoids"
+        "front-delts"
+      ]
+    },
+    {
+      "id": "side-delts",
+      "label": {
+        "en": "Side delts",
+        "ko": "측면 삼각근"
+      },
+      "parts": [
+        "side-delts"
+      ]
+    },
+    {
+      "id": "rear-delts",
+      "label": {
+        "en": "Rear delts",
+        "ko": "후면 삼각근"
+      },
+      "parts": [
+        "rear-delts"
       ]
     },
     {
@@ -155,14 +175,42 @@
       ]
     },
     {
-      "id": "back",
+      "id": "lats",
       "label": {
-        "en": "Back",
-        "ko": "등"
+        "en": "Lats",
+        "ko": "광배근"
       },
       "parts": [
-        "trapezius",
-        "upper-back",
+        "lats"
+      ]
+    },
+    {
+      "id": "traps",
+      "label": {
+        "en": "Trapezius",
+        "ko": "승모근"
+      },
+      "parts": [
+        "trapezius"
+      ]
+    },
+    {
+      "id": "scapular",
+      "label": {
+        "en": "Scapular muscles",
+        "ko": "견갑 주변근"
+      },
+      "parts": [
+        "upper-back"
+      ]
+    },
+    {
+      "id": "erectors",
+      "label": {
+        "en": "Spinal erectors",
+        "ko": "척추기립근"
+      },
+      "parts": [
         "lower-back"
       ]
     },
@@ -207,13 +255,22 @@
       ]
     },
     {
-      "id": "core",
+      "id": "abs",
       "label": {
-        "en": "Core",
-        "ko": "복근 · 옆구리"
+        "en": "Rectus abdominis",
+        "ko": "복직근"
       },
       "parts": [
-        "abs",
+        "abs"
+      ]
+    },
+    {
+      "id": "obliques",
+      "label": {
+        "en": "Obliques",
+        "ko": "복사근 · 옆구리"
+      },
+      "parts": [
         "obliques"
       ]
     },
@@ -329,7 +386,7 @@
       },
       "muscles": {
         "chest": 1,
-        "shoulders": 0.45,
+        "front-delts": 0.45,
         "triceps": 0.65
       },
       "artwork": {
@@ -383,7 +440,8 @@
         "heightExponent": 0.15
       },
       "muscles": {
-        "back": 0.8,
+        "erectors": 0.8,
+        "traps": 0.35,
         "glutes": 0.8,
         "hamstrings": 1
       },
@@ -438,7 +496,8 @@
         "heightExponent": 0
       },
       "muscles": {
-        "back": 1,
+        "lats": 1,
+        "scapular": 0.35,
         "biceps": 0.4
       },
       "artwork": {
@@ -601,7 +660,8 @@
         "heightExponent": 0
       },
       "muscles": {
-        "shoulders": 1,
+        "front-delts": 1,
+        "side-delts": 0.65,
         "triceps": 0.5
       },
       "artwork": {
@@ -818,7 +878,7 @@
         "heightExponent": 0
       },
       "muscles": {
-        "core": 1
+        "abs": 1
       },
       "artwork": {
         "src": "./artwork/cable-crunch.png",

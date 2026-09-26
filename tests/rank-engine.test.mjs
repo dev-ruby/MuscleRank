@@ -39,7 +39,7 @@ test('missing/invalid lifts are excluded without invalidating other muscles',()=
   assert.equal(inputValue('130.2',data.exercises[0].input.weight),null);
   assert.equal(inputValue('12.5',data.exercises[0].input.reps,true),null);
 });
-const fourth={id:'overhead-press',name:{ko:'오버헤드 프레스',en:'Overhead Press'},title:{ko:['오버헤드','프레스'],en:['Overhead','Press']},equipment:{ko:'바벨',en:'Barbell'},input:{weight:{min:.5,max:250,step:.5,spacing:14},reps:{min:1,max:12,step:1,spacing:54}},standard:{model:'bodyweight-ratio',referenceRatio:{male:.65,female:.4}},muscles:{shoulders:1,triceps:.5},artwork:null};
+const fourth={id:'overhead-press',name:{ko:'오버헤드 프레스',en:'Overhead Press'},title:{ko:['오버헤드','프레스'],en:['Overhead','Press']},equipment:{ko:'바벨',en:'Barbell'},input:{weight:{min:.5,max:250,step:.5,spacing:14},reps:{min:1,max:12,step:1,spacing:54}},standard:{model:'bodyweight-ratio',referenceRatio:{male:.65,female:.4}},muscles:{'front-delts':1,'side-delts':.65,triceps:.5},artwork:null};
 test('adding a fourth JSON exercise requires no engine change and no default record',()=>{
   const catalog=structuredClone(data);catalog.exercises=catalog.exercises.filter(ex=>catalog.totalExerciseIds.includes(ex.id));catalog.exercises.push(fourth);validateCatalog(catalog);
   const prior={schemaVersion:3,profile,records};const state=restoreState(catalog,prior,null);
@@ -49,7 +49,8 @@ test('adding a fourth JSON exercise requires no engine change and no default rec
   const result=calculate(catalog,profile,state.records);
   assert.equal(result.count,4);assert.equal(result.total,310);
   assert.equal(result.lifts[3].score,2);
-  assert.ok(Math.abs(result.muscles.find(m=>m.id==='shoulders').score-(.45+2)/1.45)<1e-12);
+  assert.ok(Math.abs(result.muscles.find(m=>m.id==='front-delts').score-(.45+2)/1.45)<1e-12);
+  assert.equal(result.muscles.find(m=>m.id==='side-delts').score,2);
 });
 test('legacy records migrate by stable IDs, including invalid/empty in-progress values',()=>{
   const legacy={...profile,...records,bench:{weight:'',reps:'3'}};
@@ -78,7 +79,30 @@ test('expanded exercises start empty, preserve old lifts and rank all linked mus
       for(const muscle of result.muscles) assert.equal(muscle.score,exercise.muscles[muscle.id]?1:null);
     }
   }
-  assert.ok(data.muscles.every(muscle=>data.exercises.some(exercise=>exercise.muscles[muscle.id])));
+  const empty=calculate(data,profile,{});
+  assert.equal(empty.muscles.length,data.muscles.length);
+  assert.ok(empty.muscles.every(muscle=>muscle.tier===null));
+});
+test('back, shoulder and core subdivisions only receive their linked records',()=>{
+  const result=calculate(data,profile,{
+    bench:{weight:'75',reps:'1'},
+    'overhead-press':{weight:'90',reps:'1'},
+    deadlift:{weight:'260',reps:'1'},
+    'lat-pulldown':{weight:'65',reps:'1'},
+    'cable-crunch':{weight:'40',reps:'1'},
+  });
+  const muscles=Object.fromEntries(result.muscles.map(m=>[m.id,m]));
+  assert.equal(muscles.lats.score,1);
+  assert.equal(muscles.scapular.score,1);
+  assert.equal(muscles.traps.score,2);
+  assert.equal(muscles.erectors.score,2);
+  assert.ok(Math.abs(muscles['front-delts'].score-(.45+2)/1.45)<1e-12);
+  assert.equal(muscles['side-delts'].score,2);
+  assert.equal(muscles['rear-delts'].tier,null);
+  assert.equal(muscles.abs.score,1);
+  assert.equal(muscles.obliques.tier,null);
+  assert.deepEqual(muscles.lats.contributors.map(ex=>ex.id),['lat-pulldown']);
+  assert.deepEqual(muscles.erectors.contributors.map(ex=>ex.id),['deadlift']);
 });
 test('bad IDs, missing translations, unknown muscles and malformed standards fail early',()=>{
   for(const mutate of [
