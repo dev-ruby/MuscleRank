@@ -41,7 +41,7 @@ test('missing/invalid lifts are excluded without invalidating other muscles',()=
 });
 const fourth={id:'overhead-press',name:{ko:'오버헤드 프레스',en:'Overhead Press'},title:{ko:['오버헤드','프레스'],en:['Overhead','Press']},equipment:{ko:'바벨',en:'Barbell'},input:{weight:{min:.5,max:250,step:.5,spacing:14},reps:{min:1,max:12,step:1,spacing:54}},standard:{model:'bodyweight-ratio',referenceRatio:{male:.65,female:.4}},muscles:{shoulders:1,triceps:.5},artwork:null};
 test('adding a fourth JSON exercise requires no engine change and no default record',()=>{
-  const catalog=structuredClone(data);catalog.exercises.push(fourth);validateCatalog(catalog);
+  const catalog=structuredClone(data);catalog.exercises=catalog.exercises.filter(ex=>catalog.totalExerciseIds.includes(ex.id));catalog.exercises.push(fourth);validateCatalog(catalog);
   const prior={schemaVersion:3,profile,records};const state=restoreState(catalog,prior,null);
   assert.equal(state.records['overhead-press'].weight,'');
   assert.equal(calculate(catalog,profile,state.records).score,1);
@@ -62,6 +62,23 @@ test('legacy records migrate by stable IDs, including invalid/empty in-progress 
   assert.deepEqual(fresh.records.squat,{weight:'',reps:''});
   assert.deepEqual(fresh.records.bench,{weight:'',reps:''});
   assert.deepEqual(fresh.records.deadlift,{weight:'',reps:''});
+});
+test('expanded exercises start empty, preserve old lifts and rank all linked muscles for both genders',()=>{
+  const state=restoreState(data,{schemaVersion:3,profile,records},null);
+  for(const exercise of data.exercises){
+    if(!data.totalExerciseIds.includes(exercise.id)) assert.deepEqual(state.records[exercise.id],{weight:'',reps:''});
+    else assert.deepEqual(state.records[exercise.id],records[exercise.id]);
+  }
+  assert.equal(calculate(data,profile,state.records).total,310);
+  for(const gender of ['male','female']){
+    const p={...profile,gender};
+    for(const exercise of data.exercises.filter(ex=>!data.totalExerciseIds.includes(ex.id))){
+      const result=calculate(data,p,{[exercise.id]:{weight:String(referenceWeight(exercise,p)),reps:'1'}});
+      assert.equal(result.count,1);assert.equal(result.total,null);assert.equal(result.score,1);
+      for(const muscle of result.muscles) assert.equal(muscle.score,exercise.muscles[muscle.id]?1:null);
+    }
+  }
+  assert.ok(data.muscles.every(muscle=>data.exercises.some(exercise=>exercise.muscles[muscle.id])));
 });
 test('bad IDs, missing translations, unknown muscles and malformed standards fail early',()=>{
   for(const mutate of [

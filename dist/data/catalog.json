@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "calibrationVersion": "mvp-2026-09",
+  "calibrationVersion": "mvp-2026-09-expanded",
   "status": "provisional",
   "tiers": [
     {
@@ -391,6 +391,439 @@
         "src": "./exercise-art.png",
         "columns": 3,
         "index": 2
+      }
+    },
+    {
+      "id": "lat-pulldown",
+      "name": {
+        "en": "Lat Pulldown",
+        "ko": "랫풀다운"
+      },
+      "title": {
+        "en": [
+          "Lat",
+          "Pulldown"
+        ],
+        "ko": [
+          "랫풀다운"
+        ]
+      },
+      "equipment": {
+        "en": "Cable machine",
+        "ko": "케이블 머신"
+      },
+      "input": {
+        "weight": {
+          "min": 0.5,
+          "max": 250,
+          "step": 0.5,
+          "spacing": 14
+        },
+        "reps": {
+          "min": 1,
+          "max": 12,
+          "step": 1,
+          "spacing": 54
+        }
+      },
+      "standard": {
+        "model": "allometric",
+        "referenceBodyweightKg": 70,
+        "referenceHeightCm": 170,
+        "reference1RMKg": {
+          "male": 65,
+          "female": 40
+        },
+        "bodyweightExponent": 0.67,
+        "heightExponent": 0
+      },
+      "muscles": {
+        "back": 1,
+        "biceps": 0.4
+      },
+      "artwork": {
+        "src": "./artwork/lat-pulldown.png",
+        "columns": 1,
+        "index": 0
+      }
+    },
+    {
+      "id": "barbell-curl",
+      "name": {
+        "en": "Barbell Curl",
+        "ko": "바벨 컬"
+      },
+      "title": {
+        "en": [
+          "Barbell",
+          "Curl"
+        ],
+        "ko": [
+          "바벨 컬"
+        ]
+      },
+      "equipment": {
+        "en": "Barbell",
+        "ko": "바벨"
+      },
+      "input": {
+        "weight": {
+          "min": 0.5,
+          "max": 150,
+          "step": 0.5,
+          "spacing": 14
+        },
+        "reps": {
+          "min": 1,
+          "max": 12,
+          "step": 1,
+          "spacing": 54
+        }
+      },
+      "standard": {
+        "model": "allometric",
+        "referenceBodyweightKg": 70,
+        "referenceHeightCm": 170,
+        "reference1RMKg": {
+          "male": 35,
+          "female": 20
+        },
+        "bodyweightExponent": 0.67,
+        "heightExponent": 0
+      },
+      "muscles": {
+        "biceps": 1,
+        "forearms": 0.35
+      },
+      "artwork": {
+        "src": "./artwork/barbell-curl.png",
+        "columns": 1,
+        "index": 0
+      }
+    },
+    {
+      "id": "seated-leg-curl",
+      "name": {
+        "en": "Seated Leg Curl",
+        "ko": "시티드 레그 컬"
+      },
+      "title": {
+        "en": [
+          "Seated",
+          "Leg Curl"
+        ],
+        "ko": [
+          "시티드",
+          "레그 컬"
+        ]
+      },
+      "equipment": {
+        "en": "Machine",
+        "ko": "머신"
+      },
+      "input": {
+        "weight": {
+          "min": 0.5,
+          "max": 200,
+          "step": 0.5,
+          "spacing": 14
+        },
+        "reps": {
+          "min": 1,
+          "max": 12,
+          "step": 1,
+          "spacing": 54
+        }
+      },
+      "standard": {
+        "model": "allometric",
+        "referenceBodyweightKg": 70,
+        "referenceHeightCm": 170,
+        "reference1RMKg": {
+          "male": 50,
+          "female": 32.5
+        },
+        "bodyweightExponent": 0.67,
+        "heightExponent": 0
+      },
+      "muscles": {
+        "hamstrings": 1
+      },
+      "artwork": {
+        "src": "./artwork/seated-leg-curl.png",
+        "columns": 1,
+        "index": 0
+      }
+    },
+    {
+      "id": "overhead-press",
+      "name": {
+        "en": "Overhead Press",
+        "ko": "오버헤드 프레스"
+      },
+      "title": {
+        "en": [
+          "Overhead",
+          "Press"
+        ],
+        "ko": [
+          "오버헤드",
+          "프레스"
+        ]
+      },
+      "equipment": {
+        "en": "Barbell",
+        "ko": "바벨"
+      },
+      "input": {
+        "weight": {
+          "min": 0.5,
+          "max": 250,
+          "step": 0.5,
+          "spacing": 14
+        },
+        "reps": {
+          "min": 1,
+          "max": 12,
+          "step": 1,
+          "spacing": 54
+        }
+      },
+      "standard": {
+        "model": "allometric",
+        "referenceBodyweightKg": 70,
+        "referenceHeightCm": 170,
+        "reference1RMKg": {
+          "male": 45,
+          "female": 27.5
+        },
+        "bodyweightExponent": 0.67,
+        "heightExponent": 0
+      },
+      "muscles": {
+        "shoulders": 1,
+        "triceps": 0.5
+      },
+      "artwork": {
+        "src": "./artwork/overhead-press.png",
+        "columns": 1,
+        "index": 0
+      }
+    },
+    {
+      "id": "triceps-pushdown",
+      "name": {
+        "en": "Triceps Pushdown",
+        "ko": "케이블 푸시다운"
+      },
+      "title": {
+        "en": [
+          "Triceps",
+          "Pushdown"
+        ],
+        "ko": [
+          "케이블",
+          "푸시다운"
+        ]
+      },
+      "equipment": {
+        "en": "Cable machine",
+        "ko": "케이블 머신"
+      },
+      "input": {
+        "weight": {
+          "min": 0.5,
+          "max": 150,
+          "step": 0.5,
+          "spacing": 14
+        },
+        "reps": {
+          "min": 1,
+          "max": 12,
+          "step": 1,
+          "spacing": 54
+        }
+      },
+      "standard": {
+        "model": "allometric",
+        "referenceBodyweightKg": 70,
+        "referenceHeightCm": 170,
+        "reference1RMKg": {
+          "male": 30,
+          "female": 17.5
+        },
+        "bodyweightExponent": 0.67,
+        "heightExponent": 0
+      },
+      "muscles": {
+        "triceps": 1
+      },
+      "artwork": {
+        "src": "./artwork/triceps-pushdown.png",
+        "columns": 1,
+        "index": 0
+      }
+    },
+    {
+      "id": "leg-extension",
+      "name": {
+        "en": "Leg Extension",
+        "ko": "레그 익스텐션"
+      },
+      "title": {
+        "en": [
+          "Leg",
+          "Extension"
+        ],
+        "ko": [
+          "레그",
+          "익스텐션"
+        ]
+      },
+      "equipment": {
+        "en": "Machine",
+        "ko": "머신"
+      },
+      "input": {
+        "weight": {
+          "min": 0.5,
+          "max": 250,
+          "step": 0.5,
+          "spacing": 14
+        },
+        "reps": {
+          "min": 1,
+          "max": 12,
+          "step": 1,
+          "spacing": 54
+        }
+      },
+      "standard": {
+        "model": "allometric",
+        "referenceBodyweightKg": 70,
+        "referenceHeightCm": 170,
+        "reference1RMKg": {
+          "male": 65,
+          "female": 40
+        },
+        "bodyweightExponent": 0.67,
+        "heightExponent": 0
+      },
+      "muscles": {
+        "quads": 1
+      },
+      "artwork": {
+        "src": "./artwork/leg-extension.png",
+        "columns": 1,
+        "index": 0
+      }
+    },
+    {
+      "id": "standing-calf-raise",
+      "name": {
+        "en": "Standing Calf Raise",
+        "ko": "스탠딩 카프 레이즈"
+      },
+      "title": {
+        "en": [
+          "Standing",
+          "Calf Raise"
+        ],
+        "ko": [
+          "스탠딩",
+          "카프 레이즈"
+        ]
+      },
+      "equipment": {
+        "en": "Machine",
+        "ko": "머신"
+      },
+      "input": {
+        "weight": {
+          "min": 0.5,
+          "max": 350,
+          "step": 0.5,
+          "spacing": 14
+        },
+        "reps": {
+          "min": 1,
+          "max": 12,
+          "step": 1,
+          "spacing": 54
+        }
+      },
+      "standard": {
+        "model": "allometric",
+        "referenceBodyweightKg": 70,
+        "referenceHeightCm": 170,
+        "reference1RMKg": {
+          "male": 80,
+          "female": 50
+        },
+        "bodyweightExponent": 0.67,
+        "heightExponent": 0
+      },
+      "muscles": {
+        "calves": 1
+      },
+      "artwork": {
+        "src": "./artwork/standing-calf-raise.png",
+        "columns": 1,
+        "index": 0
+      }
+    },
+    {
+      "id": "cable-crunch",
+      "name": {
+        "en": "Cable Crunch",
+        "ko": "케이블 크런치"
+      },
+      "title": {
+        "en": [
+          "Cable",
+          "Crunch"
+        ],
+        "ko": [
+          "케이블",
+          "크런치"
+        ]
+      },
+      "equipment": {
+        "en": "Cable machine",
+        "ko": "케이블 머신"
+      },
+      "input": {
+        "weight": {
+          "min": 0.5,
+          "max": 150,
+          "step": 0.5,
+          "spacing": 14
+        },
+        "reps": {
+          "min": 1,
+          "max": 12,
+          "step": 1,
+          "spacing": 54
+        }
+      },
+      "standard": {
+        "model": "allometric",
+        "referenceBodyweightKg": 70,
+        "referenceHeightCm": 170,
+        "reference1RMKg": {
+          "male": 40,
+          "female": 25
+        },
+        "bodyweightExponent": 0.67,
+        "heightExponent": 0
+      },
+      "muscles": {
+        "core": 1
+      },
+      "artwork": {
+        "src": "./artwork/cable-crunch.png",
+        "columns": 1,
+        "index": 0
       }
     }
   ],
