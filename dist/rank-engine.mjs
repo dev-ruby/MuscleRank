@@ -102,11 +102,9 @@ export function restoreState(catalog, saved, legacy) {
   const source = isCurrent ? saved.profile : legacy;
   const profile = source && ['male','female'].includes(source.gender) ? {gender:source.gender,height:String(source.height ?? '175'),bodyweight:String(source.bodyweight ?? '75')} : defaultProfile;
   const records = isCurrent ? { ...saved.records } : {};
-  const hasPrior = isCurrent || !!legacy;
   for (const exercise of catalog.exercises) {
     const prior = isCurrent ? saved.records[exercise.id] : legacy?.[exercise.id];
-    const initial = prior || (!hasPrior ? exercise.sample : null);
-    records[exercise.id] = { weight:String(initial?.weight ?? ''),reps:String(initial?.reps ?? '1') };
+    records[exercise.id] = { weight:String(prior?.weight ?? ''),reps:String(prior?.reps ?? '') };
   }
   return {schemaVersion:3,profile,records};
 }

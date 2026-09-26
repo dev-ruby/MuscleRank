@@ -183,7 +183,7 @@ function bindEvents(){
     $('profile-error').hidden=height!==null&&bodyweight!==null;if(!$('profile-error').hidden)return;
     state.profile={gender:$('gender').value,height:$('height').value,bodyweight:$('bodyweight').value};save();renderEditor();hideOverlay('profile-overlay');
   });
-  for(const [id,screen] of [['get-rank','body'],['show-result','body'],['edit-lifts','editor'],['back-to-editor','editor'],['body-rank','result'],['body-record','editor'],['body-add-record','editor'],['result-body','body']])$(id).addEventListener('click',()=>showScreen(screen));
+  for(const [id,screen] of [['get-rank','body'],['show-result','body'],['return-to-bodygraph','body'],['back-to-editor','editor'],['body-rank','result'],['body-record','editor'],['body-add-record','editor']])$(id).addEventListener('click',()=>showScreen(screen));
   for(const id of ['body-help','open-method'])$(id).addEventListener('click',()=>showOverlay('method-overlay'));
   document.addEventListener('keydown',event=>{const overlay=document.querySelector('.overlay:not([hidden])');if(!overlay)return;if(event.key==='Escape')hideOverlay(overlay.id);if(event.key==='Tab'){const controls=[...overlay.querySelectorAll('button,input,select')],first=controls[0],last=controls.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}});
 }

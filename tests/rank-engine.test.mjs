@@ -58,7 +58,10 @@ test('legacy records migrate by stable IDs, including invalid/empty in-progress 
   assert.equal(state.profile.gender,'male');
   const reordered=structuredClone(data);reordered.exercises.reverse();
   assert.deepEqual(restoreState(reordered,state,null).records,state.records);
-  const fresh=restoreState(data,null,null);assert.equal(fresh.records.squat.weight,'130');
+  const fresh=restoreState(data,null,null);
+  assert.deepEqual(fresh.records.squat,{weight:'',reps:''});
+  assert.deepEqual(fresh.records.bench,{weight:'',reps:''});
+  assert.deepEqual(fresh.records.deadlift,{weight:'',reps:''});
 });
 test('bad IDs, missing translations, unknown muscles and malformed standards fail early',()=>{
   for(const mutate of [

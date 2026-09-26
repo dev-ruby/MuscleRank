@@ -281,10 +281,6 @@
         "src": "./exercise-art.png",
         "columns": 3,
         "index": 0
-      },
-      "sample": {
-        "weight": "130",
-        "reps": "1"
       }
     },
     {
@@ -340,10 +336,6 @@
         "src": "./exercise-art.png",
         "columns": 3,
         "index": 1
-      },
-      "sample": {
-        "weight": "60",
-        "reps": "1"
       }
     },
     {
@@ -399,10 +391,6 @@
         "src": "./exercise-art.png",
         "columns": 3,
         "index": 2
-      },
-      "sample": {
-        "weight": "140",
-        "reps": "1"
       }
     }
   ],
