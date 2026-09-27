@@ -1,10 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {validateCatalog,calculate,restoreState,estimated1RM,referenceWeight,inputValue,tierIndex} from '../dist/rank-engine.mjs';
+import {validateCatalog,calculate,restoreState,estimated1RM,referenceWeight,inputValue,tierIndex,summarizeRegions} from '../dist/rank-engine.mjs';
 const data=JSON.parse(await readFile(new URL('../dist/data/catalog.json',import.meta.url),'utf8'));
 const profile={gender:'male',height:'170',bodyweight:'70'};
 const records={squat:{weight:'105',reps:'1'},bench:{weight:'75',reps:'1'},deadlift:{weight:'130',reps:'1'}};
+
+test('first-visit profile setup survives reload until saved and respects existing profiles',()=>{
+  const fresh=restoreState(data,null,null);
+  assert.equal(fresh.profileCompleted,false);
+  assert.equal(restoreState(data,fresh,null).profileCompleted,false);
+  fresh.profileCompleted=true;
+  assert.equal(restoreState(data,fresh,null).profileCompleted,true);
+  assert.equal(restoreState(data,{schemaVersion:3,profile,records},null).profileCompleted,true);
+  assert.equal(restoreState(data,null,{...profile,...records}).profileCompleted,true);
+  assert.equal(restoreState(data,{schemaVersion:3,profile:{...profile,bodyweight:''},records,profileCompleted:true},null).profileCompleted,false);
+});
+test('region rank averages measured muscles and reports partial coverage',()=>{
+  const sections=[{key:'shoulders',ids:['front-delts','side-delts','rear-delts']}];
+  const result=calculate(data,profile,{bench:{weight:'75',reps:'1'}});
+  const [partial]=summarizeRegions(sections,result.muscles,data.tiers);
+  assert.equal(partial.score,1);assert.equal(partial.measured,1);assert.equal(partial.total,3);
+  const [mixed]=summarizeRegions(sections,[{id:'front-delts',score:1},{id:'side-delts',score:2},{id:'rear-delts',score:null}],data.tiers);
+  assert.equal(mixed.score,1.5);assert.equal(mixed.tier,tierIndex(1.5,data.tiers));
+  const [empty]=summarizeRegions(sections,calculate(data,profile,{}).muscles,data.tiers);
+  assert.equal(empty.score,null);assert.equal(empty.tier,null);assert.equal(empty.measured,0);
+});
 
 test('catalog and exact tier boundaries are valid',()=>{
   assert.equal(validateCatalog(data),data);

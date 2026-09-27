@@ -2,15 +2,15 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#09080b" />
   <meta name="description" content="스쿼트, 벤치프레스, 데드리프트 기록으로 나의 운동 티어를 확인하세요." />
   <title>MuscleRank — Get My Rank</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2315101c'/%3E%3Cpath d='M9 22v20m7-25v30m32-30v30m7-25v20M16 32h32' stroke='%236abfff' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="./styles.css?v=20260926-3" />
-  <script src="./body-model.js?v=20260926-4" defer></script>
+  <link rel="stylesheet" href="./styles.css?v=20260927-1" />
+  <script src="./body-model.js?v=20260927-1" defer></script>
   <script src="./ruler.js" defer></script>
-  <script type="module" src="./app.js?v=20260926-4"></script>
+  <script type="module" src="./app.js?v=20260927-1"></script>
   <script src="./analytics.js" defer></script>
 </head>
 <body>
@@ -23,6 +23,7 @@
       <div class="body-legend" id="body-legend"></div>
       <div class="muscle-heading"><h1 data-i18n="muscleRankings">Muscle Rankings</h1><span data-i18n="basedOnLifts">3대 운동 기반</span></div>
       <p class="body-note" data-i18n="bodyNote">운동 기록으로 추정한 부위별 랭크 · 회색은 미평가</p>
+      <p class="region-note" data-i18n="regionNote"></p>
       <div class="muscle-sort" role="group" data-i18n-aria="sortMuscles" aria-label="부위별 랭크 정렬"><button id="sort-body" type="button" aria-pressed="true" data-i18n="sortBody">몸 부위별</button><button id="sort-rank" type="button" aria-pressed="false" data-i18n="sortRank">높은 랭크순</button></div>
       <div id="muscle-rankings" class="muscle-rankings"></div>
       <button id="body-add-record" class="body-add-record" data-i18n="addRecord">＋ RECORD MY LIFTS</button>
@@ -65,7 +66,7 @@
       <button id="open-method" class="method-link" type="button" data-i18n="methodLabel">랭크 계산 기준 보기</button>
     </section>
 
-    <div class="overlay" id="profile-overlay" hidden><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="profile-title"><div class="sheet-header"><h2 id="profile-title" data-i18n="profileTitle">체격 정보</h2><button id="close-profile" type="button" aria-label="닫기" data-i18n-aria="close">×</button></div><p data-i18n="profileNote">성별, 키, 몸무게를 기준 무게에 반영합니다.</p><div class="profile-fields"><label><span data-i18n="gender">성별 기준</span><select id="gender"><option value="male" data-i18n="male">남성</option><option value="female" data-i18n="female">여성</option></select></label><label><span data-i18n="height">키</span> <small>cm</small><input id="height" type="number" min="100" max="230" step="0.1" inputmode="decimal" value="175"></label><label><span data-i18n="bodyweight">몸무게</span> <small>kg</small><input id="bodyweight" type="number" min="20" max="400" step="0.1" inputmode="decimal" value="75"></label></div><p id="profile-error" class="input-error" role="status" hidden data-i18n="invalidProfile"></p><button id="save-profile" class="sheet-button" type="button" data-i18n="save">저장하기</button></section></div>
+    <div class="overlay" id="profile-overlay" hidden><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="profile-title"><div class="sheet-header"><h2 id="profile-title" data-i18n="profileTitle">체격 정보</h2><button id="close-profile" type="button" aria-label="닫기" data-i18n-aria="close">×</button></div><p id="profile-note" data-i18n="profileNote">성별, 키, 몸무게를 기준 무게에 반영합니다.</p><div class="profile-fields"><label><span data-i18n="gender">성별 기준</span><select id="gender"><option value="" disabled data-i18n="selectGender">선택해 주세요</option><option value="male" data-i18n="male">남성</option><option value="female" data-i18n="female">여성</option></select></label><label><span data-i18n="height">키</span> <small>cm</small><input id="height" type="number" min="100" max="230" step="0.1" inputmode="decimal" value="175"></label><label><span data-i18n="bodyweight">몸무게</span> <small>kg</small><input id="bodyweight" type="number" min="20" max="400" step="0.1" inputmode="decimal" value="75"></label></div><p id="profile-error" class="input-error" role="status" hidden data-i18n="invalidProfile"></p><button id="save-profile" class="sheet-button" type="button" data-i18n="save">저장하기</button></section></div>
     <div class="overlay" id="picker-overlay" hidden><section class="sheet picker-sheet" role="dialog" aria-modal="true" aria-labelledby="picker-title"><div class="sheet-header"><h2 id="picker-title" data-i18n="pickerTitle">운동 선택</h2><button id="close-picker" type="button" aria-label="닫기" data-i18n-aria="close">×</button></div><p data-i18n="pickerNote">3대 운동 중 기록할 운동을 선택하세요.</p><div id="picker-list" class="picker-list"></div></section></div>
     <div class="overlay" id="method-overlay" hidden><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="method-title"><div class="sheet-header"><h2 id="method-title" data-i18n="methodTitle">랭크 계산 기준</h2><button id="close-method" type="button" aria-label="닫기" data-i18n-aria="close">×</button></div><p data-i18n="method1"></p><p data-i18n="method2"></p><p data-i18n="method3"></p><p data-i18n="method4"></p></section></div>
     <div class="overlay lift-rank-overlay" id="lift-rank-overlay" hidden>

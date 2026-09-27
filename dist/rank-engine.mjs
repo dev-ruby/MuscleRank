@@ -96,6 +96,14 @@ export function calculate(catalog, profile, records) {
   const total = totalLifts.every(lift => lift.valid) ? totalLifts.reduce((sum,lift) => sum+lift.oneRepMax,0) : null;
   return { lifts, muscles, score, tier: score === null ? null : tierIndex(score,catalog.tiers), total, totalLifts, count: scored.length };
 }
+export function summarizeRegions(sections, muscles, tiers) {
+  return sections.map(section => {
+    const members = muscles.filter(muscle => section.ids.includes(muscle.id));
+    const measured = members.filter(muscle => muscle.score !== null && Number.isFinite(muscle.score));
+    const score = measured.length ? measured.reduce((sum,muscle)=>sum+muscle.score,0)/measured.length : null;
+    return {...section, score, tier:score === null ? null : tierIndex(score,tiers), measured:measured.length, total:members.length};
+  });
+}
 export function restoreState(catalog, saved, legacy) {
   const defaultProfile = { gender:'male', height:'175', bodyweight:'75' };
   const isCurrent = saved?.schemaVersion === 3 && saved.profile && saved.records;
@@ -106,5 +114,7 @@ export function restoreState(catalog, saved, legacy) {
     const prior = isCurrent ? saved.records[exercise.id] : legacy?.[exercise.id];
     records[exercise.id] = { weight:String(prior?.weight ?? ''),reps:String(prior?.reps ?? '') };
   }
-  return {schemaVersion:3,profile,records};
+  const validSource = source && ['male','female'].includes(source.gender) && numeric(source.height,100,230)!==null && numeric(source.bodyweight,20,400)!==null;
+  const profileCompleted = !!validSource && (!isCurrent || saved.profileCompleted !== false);
+  return {schemaVersion:3,profile,records,profileCompleted};
 }

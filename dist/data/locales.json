@@ -74,12 +74,18 @@
     "contribution": "반영 비중 {percent}%",
     "noMuscleRecord": "연결된 운동을 기록해 주세요.",
     "invalidRecord": "무게 {min}–{max} kg ({step} kg 단위), 반복 {repMin}–{repMax}회를 입력하세요.",
-    "invalidProfile": "키 100–230 cm, 몸무게 20–400 kg 범위로 입력하세요.",
+    "invalidProfile": "성별을 선택하고 키 100–230 cm, 몸무게 20–400 kg 범위로 입력하세요.",
     "language": "표시 언어",
     "loading": "불러오는 중…",
     "loadError": "운동 정보를 불러오지 못했습니다.",
     "retry": "다시 시도",
-    "regionShoulders": "어깨"
+    "regionShoulders": "어깨",
+    "welcomeTitle": "나에게 맞는 랭크 시작하기",
+    "welcomeNote": "성별, 키, 몸무게를 입력하면 내 체격에 맞춰 운동 랭크를 계산해요.",
+    "startRanking": "시작하기",
+    "selectGender": "선택해 주세요",
+    "regionCoverage": "{total}개 근육 중 {count}개 평가",
+    "regionNote": "부위 종합 티어는 평가된 세부 근육 점수의 평균이에요. 미평가 근육은 제외해요."
   },
   "en": {
     "pageTitle": "MuscleRank — Muscle Rankings",
@@ -156,11 +162,17 @@
     "contribution": "Contribution {percent}%",
     "noMuscleRecord": "Record a linked exercise to rank this muscle.",
     "invalidRecord": "Enter {min}–{max} kg in {step} kg increments and {repMin}–{repMax} reps.",
-    "invalidProfile": "Enter a height of 100–230 cm and a bodyweight of 20–400 kg.",
+    "invalidProfile": "Select a sex and enter a height of 100–230 cm and body weight of 20–400 kg.",
     "language": "Display language",
     "loading": "Loading…",
     "loadError": "Could not load exercise data.",
     "retry": "Try again",
-    "regionShoulders": "Shoulders"
+    "regionShoulders": "Shoulders",
+    "welcomeTitle": "Your strength, your starting point",
+    "welcomeNote": "Enter your sex, height and body weight to calculate ranks for your body profile.",
+    "startRanking": "Get started",
+    "selectGender": "Please select",
+    "regionCoverage": "{count} of {total} muscles ranked",
+    "regionNote": "Each region rank averages its measured muscle scores. Unranked muscles are excluded."
   }
 }

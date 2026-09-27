@@ -1,4 +1,5 @@
-import { validateCatalog, calculate, restoreState, numeric, inputValue, subdivision } from './rank-engine.mjs';
+import { validateCatalog, calculate, restoreState, numeric, inputValue, subdivision, summarizeRegions } from './rank-engine.mjs?v=20260927-1';
+import { muscleIcon } from './muscle-icons.mjs';
 
 const $ = id => document.getElementById(id);
 const STORAGE_KEY = 'musclerank-records-v3';
@@ -11,6 +12,8 @@ const escape = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;',
 let catalog, locales, state, exercises, tiers, muscleGroups;
 let selected = 0, language = read(LANGUAGE_KEY) === 'en' ? 'en' : 'ko';
 let muscleSort = read(SORT_KEY) === 'rank' ? 'rank' : 'body', muscleOrder = '';
+const muscleCards = new Map(), regionCards = new Map();
+let onboarding = false;
 const bodySections = [
   {key:'regionChest',ids:['chest']},
   {key:'regionShoulders',ids:['front-delts','side-delts','rear-delts']},
@@ -72,7 +75,7 @@ function buildBody() {
       const muscle = muscleGroups.find(item => item.parts.includes(part.slug));
       if (muscle) {
         group.dataset.group = muscle.id; group.setAttribute('role','button'); group.setAttribute('tabindex','0');
-        const select = () => { const card=$('muscle-'+muscle.id);if(card.hidden)return;card.open=true;card.scrollIntoView({behavior:reducedMotion()?'instant':'smooth',block:'center'}); };
+        const select = () => { const card=$('muscle-'+muscle.id);if(card.hidden)return;card.closest('.region-card')?.setAttribute('open','');card.open=true;card.scrollIntoView({behavior:reducedMotion()?'instant':'smooth',block:'center'}); };
         group.addEventListener('click',select);group.addEventListener('keydown',event=>{if(['Enter',' '].includes(event.key)){event.preventDefault();select();}});
       }
       for(const d of part.paths){const path=document.createElementNS(ns,'path');path.setAttribute('d',d);group.append(path);}
@@ -80,12 +83,18 @@ function buildBody() {
     }
     $('bodygraph').append(svg);
   }
-  $('muscle-rankings').innerHTML = muscleGroups.map((muscle,index)=>`<details class="muscle-card" id="muscle-${muscle.id}" ${index===0?'open':''}><summary><span class="muscle-emblem" aria-hidden="true"><svg viewBox="0 0 60 68"><path d="M30 2 57 17v34L30 66 3 51V17Z"/><path class="emblem-muscle" d="M19 25q11-7 22 0l-3 12-8 8-8-8zM30 23v22M20 31h20"/></svg></span><span class="muscle-card-name"><span class="muscle-name"></span><b class="muscle-tier"></b></span><span class="expand-chevron">⌃</span></summary><div class="muscle-detail"></div></details>`).join('');
+  $('muscle-rankings').innerHTML = muscleGroups.map((muscle,index)=>`<details class="muscle-card" id="muscle-${muscle.id}" ${index===0?'open':''}><summary><span class="muscle-emblem">${muscleIcon(window.BODY_MODEL,muscle,`icon-${muscle.id}`)}</span><span class="muscle-card-name"><span class="muscle-name"></span><b class="muscle-tier"></b></span><span class="expand-chevron">⌃</span></summary><div class="muscle-detail"></div></details>`).join('');
   $('muscle-rankings').addEventListener('click',event=>{
     const button=event.target.closest('[data-edit]');if(!button)return;
     stopRulers();selected=exercises.findIndex(exercise=>exercise.id===button.dataset.edit);renderEditor();showScreen('editor');
   });
-  document.querySelectorAll('.muscle-card').forEach(card=>{
+  document.querySelectorAll('.muscle-card').forEach(card=>muscleCards.set(card.id,card));
+  for (const section of bodySections) {
+    const card=document.createElement('details');card.id='region-'+section.key;card.className='region-card';card.open=true;
+    card.innerHTML='<summary><span class="region-label"><strong></strong><small></small></span><span class="region-rank"></span><span class="region-badge badge-sprite" aria-hidden="true"></span><span class="expand-chevron">⌃</span></summary><div class="region-members"></div>';
+    regionCards.set(section.key,card);$('muscle-rankings').append(card);
+  }
+  [...muscleCards.values(),...regionCards.values()].forEach(card=>{
     let busy=false;
     card.querySelector('summary').addEventListener('click',async event=>{
       event.preventDefault();if(busy)return;busy=true;
@@ -97,27 +106,32 @@ function buildBody() {
   });
 }
 function orderMuscles(result) {
-  const ranked=result.muscles.filter(muscle=>muscleGroups.some(group=>group.id===muscle.id));
   const list=$('muscle-rankings'),nodes=[];
-  if(muscleSort==='rank'){
-    ranked.sort((a,b)=>(b.score??-1)-(a.score??-1));
-    for(const muscle of ranked)nodes.push($('muscle-'+muscle.id));
-  }else{
-    for(const section of bodySections){
-      const members=section.ids.filter(id=>ranked.some(muscle=>muscle.id===id));
-      if(!members.length)continue;
-      let heading=$('heading-'+section.key);
-      if(!heading){heading=document.createElement('h2');heading.id='heading-'+section.key;heading.className='muscle-section-heading';}
-      heading.textContent=t(section.key);nodes.push(heading,...members.map(id=>$('muscle-'+id)));
+  const regions=summarizeRegions(bodySections,result.muscles,tiers);
+  if(muscleSort==='rank')regions.sort((a,b)=>(b.score??-1)-(a.score??-1));
+  const signature=[muscleSort];
+  for(const region of regions){
+    const card=regionCards.get(region.key),tier=region.tier===null?null:tiers[region.tier];
+    card.querySelector('.region-label strong').textContent=t(region.key);
+    card.querySelector('.region-label small').textContent=t('regionCoverage',{count:region.measured,total:region.total});
+    card.querySelector('.region-rank').textContent=rankText(region.score,region.tier);
+    card.style.setProperty('--region-color',tier?.color||'#b9b8ce');
+    const badge=card.querySelector('.region-badge');badge.hidden=region.tier===null;
+    if(region.tier!==null)badgeAt(badge,region.tier);
+    const members=region.ids.map(id=>result.muscles.find(muscle=>muscle.id===id)).filter(Boolean);
+    if(muscleSort==='rank')members.sort((a,b)=>(b.score??-1)-(a.score??-1));
+    const memberOrder=members.map(m=>m.id).join('|');
+    if(card.dataset.order!==memberOrder){
+      card.querySelector('.region-members').append(...members.map(m=>muscleCards.get('muscle-'+m.id)));
+      card.dataset.order=memberOrder;
     }
-    // Future catalog muscles without a configured region still remain visible.
-    for(const muscle of ranked)if(!bodySections.some(section=>section.ids.includes(muscle.id)))nodes.push($('muscle-'+muscle.id));
+    nodes.push(card);signature.push(region.key);
   }
-  const order=nodes.map(node=>node.id).join('|');
-  if(order!==muscleOrder){
-    list.querySelectorAll('.muscle-section-heading').forEach(heading=>heading.remove());
-    list.append(...nodes);muscleOrder=order;
+  for(const muscle of result.muscles)if(!bodySections.some(section=>section.ids.includes(muscle.id))){
+    nodes.push(muscleCards.get('muscle-'+muscle.id));signature.push(muscle.id);
   }
+  const order=signature.join('|');
+  if(order!==muscleOrder){list.append(...nodes);muscleOrder=order;}
   for(const mode of ['body','rank'])$('sort-'+mode).setAttribute('aria-pressed',String(muscleSort===mode));
 }
 function renderBody(result) {
@@ -210,8 +224,8 @@ function showScreen(screen){
   const element=$(screen+'-screen');motion(element,[{opacity:0,transform:`translateY(${screen==='editor'?35:12}px)`},{opacity:1,transform:'translateY(0)'}],380);
   element.setAttribute('tabindex','-1');element.focus({preventScroll:true});
 }
-function showOverlay(id){stopRulers();overlayOpener=document.activeElement;const overlay=$(id);overlay.hidden=false;document.body.style.overflow='hidden';motion(overlay,[{opacity:0},{opacity:1}],220);motion(overlay.querySelector('.sheet'),id==='lift-rank-overlay'?[{opacity:0,transform:'translateY(28px) scale(.88)'},{opacity:1,transform:'translateY(0) scale(1)'}]:[{transform:'translateY(60px)'},{transform:'translateY(0)'}],360);overlay.querySelector('button').focus();}
-async function hideOverlay(id){const overlay=$(id);if(overlay.hidden||overlay.dataset.closing)return;overlay.dataset.closing='true';await motion(overlay,[{opacity:1},{opacity:0}],140).finished.catch(()=>{});overlay.hidden=true;delete overlay.dataset.closing;if(id==='lift-rank-overlay')$('body-screen').inert=false;document.body.style.overflow='';overlayOpener?.focus({preventScroll:true});}
+function showOverlay(id){stopRulers();overlayOpener=document.activeElement;const overlay=$(id);overlay.hidden=false;document.body.style.overflow='hidden';motion(overlay,[{opacity:0},{opacity:1}],220);motion(overlay.querySelector('.sheet'),id==='lift-rank-overlay'?[{opacity:0,transform:'translateY(28px) scale(.88)'},{opacity:1,transform:'translateY(0) scale(1)'}]:[{transform:'translateY(60px)'},{transform:'translateY(0)'}],360);overlay.querySelector('button:not([hidden]),input,select').focus({preventScroll:true});}
+async function hideOverlay(id){const overlay=$(id);if((id==='profile-overlay'&&onboarding)||overlay.hidden||overlay.dataset.closing)return;overlay.dataset.closing='true';await motion(overlay,[{opacity:1},{opacity:0}],140).finished.catch(()=>{});overlay.hidden=true;delete overlay.dataset.closing;if(id==='lift-rank-overlay'||id==='profile-overlay')$('body-screen').inert=false;document.body.style.overflow='';overlayOpener?.focus({preventScroll:true});}
 async function selectExercise(index,direction=1){
   if(carouselBusy||index===selected)return;carouselBusy=true;stopRulers();
   const panels=[...document.querySelectorAll('.exercise-carousel > *')];
@@ -227,7 +241,18 @@ function renderPicker(){
   $('picker-list').querySelectorAll('[data-art]').forEach(el=>artAt(el,exercises.find(ex=>ex.id===el.dataset.art)));
   $('picker-list').querySelectorAll('[data-badge]').forEach(el=>badgeAt(el,Number(el.dataset.badge)));
 }
-function openProfile(){for(const key of ['gender','height','bodyweight'])$(key).value=state.profile[key];$('profile-error').hidden=true;showOverlay('profile-overlay');}
+function openProfile(firstVisit=false){
+  onboarding=firstVisit;
+  for(const key of ['gender','height','bodyweight'])$(key).value=firstVisit?'':state.profile[key];
+  $('close-profile').hidden=firstVisit;
+  $('profile-title').textContent=t(firstVisit?'welcomeTitle':'profileTitle');
+  $('profile-note').textContent=t(firstVisit?'welcomeNote':'profileNote');
+  $('save-profile').textContent=t(firstVisit?'startRanking':'save');
+  $('profile-overlay').classList.toggle('onboarding',firstVisit);
+  $('profile-error').hidden=true;
+  for(const key of ['gender','height','bodyweight']){$(key).classList.remove('invalid');$(key).removeAttribute('aria-invalid');}
+  $('body-screen').inert=true;showOverlay('profile-overlay');
+}
 function bindEvents(){
   for(const mode of ['body','rank'])$('sort-'+mode).addEventListener('click',()=>{
     if(muscleSort===mode)return;
@@ -249,18 +274,20 @@ function bindEvents(){
     $('close-'+name).addEventListener('click',()=>hideOverlay(name+'-overlay'));
     $(name+'-overlay').addEventListener('click',event=>{if(event.target===$(name+'-overlay'))hideOverlay(name+'-overlay');});
   }
-  for(const id of ['open-profile','body-profile'])$(id).addEventListener('click',openProfile);
+  for(const id of ['open-profile','body-profile'])$(id).addEventListener('click',()=>openProfile());
   $('save-profile').addEventListener('click',()=>{
     const height=numeric($('height').value,100,230),bodyweight=numeric($('bodyweight').value,20,400);
     $('height').classList.toggle('invalid',height===null);$('bodyweight').classList.toggle('invalid',bodyweight===null);
-    $('profile-error').hidden=height!==null&&bodyweight!==null;if(!$('profile-error').hidden)return;
-    state.profile={gender:$('gender').value,height:$('height').value,bodyweight:$('bodyweight').value};save();renderEditor();hideOverlay('profile-overlay');
+    const genderValid=['male','female'].includes($('gender').value);
+    for(const [key,valid] of [['gender',genderValid],['height',height!==null],['bodyweight',bodyweight!==null]])$(key).setAttribute('aria-invalid',String(!valid));
+    $('profile-error').hidden=height!==null&&bodyweight!==null&&genderValid;if(!$('profile-error').hidden)return;
+    state.profile={gender:$('gender').value,height:$('height').value,bodyweight:$('bodyweight').value};state.profileCompleted=true;onboarding=false;save();renderEditor();hideOverlay('profile-overlay');
   });
   $('get-rank').addEventListener('click',showLiftRank);
   $('lift-rank-done').addEventListener('click',()=>hideOverlay('lift-rank-overlay'));
   for(const [id,screen] of [['show-result','body'],['return-to-bodygraph','body'],['back-to-editor','editor'],['body-rank','result'],['body-record','editor'],['body-add-record','editor']])$(id).addEventListener('click',()=>showScreen(screen));
   for(const id of ['body-help','open-method'])$(id).addEventListener('click',()=>showOverlay('method-overlay'));
-  document.addEventListener('keydown',event=>{const overlay=document.querySelector('.overlay:not([hidden])');if(!overlay)return;if(event.key==='Escape')hideOverlay(overlay.id);if(event.key==='Tab'){const controls=[...overlay.querySelectorAll('button,input,select')],first=controls[0],last=controls.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}});
+  document.addEventListener('keydown',event=>{const overlay=document.querySelector('.overlay:not([hidden])');if(!overlay)return;if(event.key==='Escape')hideOverlay(overlay.id);if(event.key==='Tab'){const controls=[...overlay.querySelectorAll('button,input,select')].filter(control=>!control.hidden&&!control.disabled&&control.getClientRects().length),first=controls[0],last=controls.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}});
 }
 function registerAgentTool(){
   if(!document.modelContext?.registerTool)return;
@@ -270,6 +297,7 @@ function registerAgentTool(){
     if(!input||!['male','female'].includes(input.gender)||numeric(input.height,100,230)===null||numeric(input.bodyweight,20,400)===null||!input.records||Array.isArray(input.records)||typeof input.records!=='object')throw new Error('Invalid profile or records');
     for(const [id,record]of Object.entries(input.records)){const ex=exercises.find(ex=>ex.id===id);if(!ex||!record||inputValue(record.weight,ex.input.weight)===null||inputValue(record.reps,ex.input.reps,true)===null)throw new Error('Invalid exercise record');}
     stopRulers();state.profile={gender:input.gender,height:String(input.height),bodyweight:String(input.bodyweight)};
+    state.profileCompleted=true;onboarding=false;hideOverlay('profile-overlay');
     for(const[id,record]of Object.entries(input.records))state.records[id]={weight:String(record.weight),reps:String(record.reps)};
     save();renderEditor();showScreen('body');return{muscles:results().muscles.map(m=>({id:m.id,tier:rankText(m.score,m.tier)}))};
   }})).catch(()=>{});}catch{/* Visible controls remain available. */}
@@ -282,10 +310,11 @@ async function start(){
     const requiredKeys=[...document.querySelectorAll('[data-i18n],[data-i18n-aria]')].flatMap(el=>[el.dataset.i18n,el.dataset.i18nAria]).filter(Boolean).concat(bodySections.map(section=>section.key));
     if(!locales.ko||!locales.en||[...requiredKeys,...Object.keys(locales.en),...Object.keys(locales.ko)].some(key=>!locales.ko[key]||!locales.en[key]))throw new Error('Missing translations');
     exercises=catalog.exercises;tiers=catalog.tiers;
-    // Only groups linked to configured exercises need interactive cards.
+    // Unmeasured muscles remain visible, including those without linked exercises.
     muscleGroups=catalog.muscles;
     state=restoreState(catalog,read(STORAGE_KEY),read(legacyKey));save();buildBody();bindEvents();renderLocale();registerAgentTool();
     $('app-status').hidden=true;document.querySelector('main').hidden=false;
+    if(!state.profileCompleted)openProfile(true);
   }catch(error){console.error(error);$('app-status').replaceChildren(document.createTextNode('운동 정보를 불러오지 못했습니다. / Could not load exercise data. '));const retry=document.createElement('button');retry.textContent='다시 시도 / Try again';retry.addEventListener('click',()=>location.reload());$('app-status').append(retry);}
 }
 start();
