@@ -107,8 +107,19 @@ function buildBody() {
 }
 function orderMuscles(result) {
   const list=$('muscle-rankings'),nodes=[];
+  document.querySelector('.region-note').hidden=muscleSort==='rank';
+  for(const mode of ['body','rank'])$('sort-'+mode).setAttribute('aria-pressed',String(muscleSort===mode));
+  if(muscleSort==='rank'){
+    const ranked=[...result.muscles].sort((a,b)=>(b.score??-1)-(a.score??-1));
+    const order='rank|'+ranked.map(muscle=>muscle.id).join('|');
+    if(order!==muscleOrder){
+      list.replaceChildren(...ranked.map(muscle=>muscleCards.get('muscle-'+muscle.id)));
+      muscleOrder=order;
+      for(const card of regionCards.values())delete card.dataset.order;
+    }
+    return;
+  }
   const regions=summarizeRegions(bodySections,result.muscles,tiers);
-  if(muscleSort==='rank')regions.sort((a,b)=>(b.score??-1)-(a.score??-1));
   const signature=[muscleSort];
   for(const region of regions){
     const card=regionCards.get(region.key),tier=region.tier===null?null:tiers[region.tier];
@@ -119,7 +130,6 @@ function orderMuscles(result) {
     const badge=card.querySelector('.region-badge');badge.hidden=region.tier===null;
     if(region.tier!==null)badgeAt(badge,region.tier);
     const members=region.ids.map(id=>result.muscles.find(muscle=>muscle.id===id)).filter(Boolean);
-    if(muscleSort==='rank')members.sort((a,b)=>(b.score??-1)-(a.score??-1));
     const memberOrder=members.map(m=>m.id).join('|');
     if(card.dataset.order!==memberOrder){
       card.querySelector('.region-members').append(...members.map(m=>muscleCards.get('muscle-'+m.id)));
@@ -131,8 +141,7 @@ function orderMuscles(result) {
     nodes.push(muscleCards.get('muscle-'+muscle.id));signature.push(muscle.id);
   }
   const order=signature.join('|');
-  if(order!==muscleOrder){list.append(...nodes);muscleOrder=order;}
-  for(const mode of ['body','rank'])$('sort-'+mode).setAttribute('aria-pressed',String(muscleSort===mode));
+  if(order!==muscleOrder){list.replaceChildren(...nodes);muscleOrder=order;}
 }
 function renderBody(result) {
   $('body-profile-summary').textContent=`${state.profile.height} cm · ${state.profile.bodyweight} kg`;
